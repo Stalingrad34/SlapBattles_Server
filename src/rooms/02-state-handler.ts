@@ -1,35 +1,54 @@
 import { Room, Client } from "colyseus";
 import { Schema, type, MapSchema } from "@colyseus/schema";
 
-export class Player extends Schema {
-    @type("number")
-    x = Math.floor(Math.random() * 400);
+export class Vector2Float extends Schema {
+    @type("number") x: number;
+    @type("number") z: number;
 
-    @type("number")
-    y = Math.floor(Math.random() * 400);
+    constructor(x: number, z: number) {
+        super();
+        this.x = x;
+        this.z = z;
+    }
+}
+
+export class Vector3Float extends Schema {
+    @type("number") x: number;
+    @type("number") y: number;
+    @type("number") z: number;
+
+    constructor(x: number, y: number, z: number) {
+        super();
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+}
+
+export class Player extends Schema {
+    @type(Vector2Float) position: Vector2Float;
+    @type("number") rotationY = 0;
+    @type("number") speed = 0;
 }
 
 export class State extends Schema {
     @type({ map: Player })
     players = new MapSchema<Player>();
 
-    something = "This attribute won't be sent to the client-side";
-
     createPlayer(sessionId: string) {
-        this.players.set(sessionId, new Player());
+        const player = new Player();
+        player.position = new Vector2Float(0, 0);
+        this.players.set(sessionId, player);
     }
 
     removePlayer(sessionId: string) {
         this.players.delete(sessionId);
     }
 
-    movePlayer (sessionId: string, movement: any) {
-        if (movement.x) {
-            this.players.get(sessionId).x += movement.x * 10;
-
-        } else if (movement.y) {
-            this.players.get(sessionId).y += movement.y * 10;
-        }
+    movePlayer (sessionId: string, data: any) {
+        const player = this.players.get(sessionId);
+        player.position = new Vector2Float(data.positionX, data.positionZ);
+        player.rotationY = data.rotationY;
     }
 }
 
@@ -41,8 +60,12 @@ export class StateHandlerRoom extends Room {
         console.log("StateHandlerRoom created!", options);
 
         this.onMessage("move", (client, data) => {
-            console.log("StateHandlerRoom received message from", client.sessionId, ":", data);
             this.state.movePlayer(client.sessionId, data);
+        });
+
+        this.onMessage("startSlap", (client, data) => {
+            console.log("start slap", data);
+            this.broadcast("startSlap", data, {except: client});
         });
     }
 
@@ -51,7 +74,6 @@ export class StateHandlerRoom extends Room {
     // }
 
     onJoin (client: Client) {
-        // client.send("hello", "world");
         console.log(client.sessionId, "joined!");
         this.state.createPlayer(client.sessionId);
     }
