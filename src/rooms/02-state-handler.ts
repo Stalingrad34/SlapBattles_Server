@@ -31,13 +31,26 @@ export class Player extends Schema {
     @type("number") speed = 0;
 }
 
+export class RestartInfo extends Schema {
+    @type("string") playerId: string;
+    @type(Player) player: Player;
+
+    constructor(playerId: string, player: Player) {
+        super();
+        this.playerId = playerId;
+        this.player = player;
+    }
+}
+
 export class State extends Schema {
+    fieldSize = 15;
+
     @type({ map: Player })
     players = new MapSchema<Player>();
 
     createPlayer(sessionId: string) {
         const player = new Player();
-        player.position = new Vector2Float(0, 0);
+        player.position = this.getRandomFieldPoint();
         this.players.set(sessionId, player);
     }
 
@@ -49,6 +62,13 @@ export class State extends Schema {
         const player = this.players.get(sessionId);
         player.position = new Vector2Float(data.positionX, data.positionZ);
         player.rotationY = data.rotationY;
+    }
+
+    getRandomFieldPoint(): Vector2Float {
+        const x = Math.floor(Math.random() * this.fieldSize) - this.fieldSize / 2;
+        const z = Math.floor(Math.random() * this.fieldSize) - this.fieldSize / 2;
+
+        return new Vector2Float(x, z);
     }
 }
 
@@ -66,6 +86,20 @@ export class StateHandlerRoom extends Room {
         this.onMessage("startSlap", (client, data) => {
             console.log("start slap", data);
             this.broadcast("startSlap", data, {except: client});
+        });
+
+        this.onMessage("slapPunch", (client, data) => {
+            console.log("slap punch", data);
+            this.broadcast("slapPunch", data, {except: client});
+        });
+
+        this.onMessage("restart", (client, playerId) => {
+            console.log("restart", playerId);
+            const player = this.state.players.get(playerId);
+            player.position = this.state.getRandomFieldPoint();
+            const restartInfo = new RestartInfo(playerId, player);
+            const json = JSON.stringify(restartInfo);
+            this.broadcast("restart", json);
         });
     }
 
