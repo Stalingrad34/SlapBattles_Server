@@ -84,20 +84,18 @@ export class StateHandlerRoom extends Room {
         });
 
         this.onMessage("startSlap", (client, data) => {
-            console.log("start slap", data);
             this.broadcast("startSlap", data, {except: client});
         });
 
         this.onMessage("slapPunch", (client, data) => {
-            console.log("slap punch", data);
             this.broadcast("slapPunch", data, {except: client});
         });
 
-        this.onMessage("restart", (client, playerId) => {
-            console.log("restart", playerId);
-            const player = this.state.players.get(playerId);
-            player.position = this.state.getRandomFieldPoint();
-            const restartInfo = new RestartInfo(playerId, player);
+        this.onMessage("restart", (client, data) => {
+            const player = this.state.players.get(data.playerId);
+            player.position = new Vector2Float(data.position.x, data.position.z);
+            player.rotationY = data.rotation;
+            const restartInfo = new RestartInfo(data.playerId, player);
             const json = JSON.stringify(restartInfo);
             this.broadcast("restart", json);
         });
