@@ -12,14 +12,14 @@ import "./config/auth";
 // Import demo room handlers
 import { LobbyRoom, RelayRoom } from 'colyseus';
 import { ChatRoom } from "./rooms/01-chat-room";
-import { StateHandlerRoom } from "./rooms/02-state-handler";
+import { LobbyGameRoom, StandardGameRoom as ArenaGameRoom } from "./rooms/02-state-handler";
 import { AuthRoom } from "./rooms/03-auth";
 import { ReconnectionRoom } from './rooms/04-reconnection';
 import { CustomLobbyRoom } from './rooms/07-custom-lobby-room';
 
 export default config({
     options: {
-        devMode: true,
+        devMode: false,
     },
 
     initializeGameServer: (gameServer) => {
@@ -41,7 +41,10 @@ export default config({
         });
 
         // Define "state_handler" room
-        gameServer.define("state_handler", StateHandlerRoom)
+        gameServer.define("lobby_room", LobbyGameRoom)
+            .enableRealtimeListing();
+
+        gameServer.define("arena_room", ArenaGameRoom)
             .enableRealtimeListing();
 
         // Define "auth" room

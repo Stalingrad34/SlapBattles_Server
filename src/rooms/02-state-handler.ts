@@ -48,9 +48,10 @@ export class State extends Schema {
     @type({ map: Player })
     players = new MapSchema<Player>();
 
-    createPlayer(sessionId: string) {
+    createPlayer(sessionId: string, data: any) {
         const player = new Player();
-        player.position = this.getRandomFieldPoint();
+        player.position = new Vector2Float(data.position.x, data.position.z);
+        player.rotationY = data.rotation;
         this.players.set(sessionId, player);
     }
 
@@ -72,12 +73,12 @@ export class State extends Schema {
     }
 }
 
-export class StateHandlerRoom extends Room {
-    maxClients = 4;
+export class StandardGameRoom extends Room {
+    maxClients = 10;
     state = new State();
 
     onCreate (options) {
-        console.log("StateHandlerRoom created!", options);
+        console.log("StandardGameRoom created!", options);
 
         this.onMessage("move", (client, data) => {
             this.state.movePlayer(client.sessionId, data);
@@ -105,9 +106,41 @@ export class StateHandlerRoom extends Room {
     //     return true;
     // }
 
-    onJoin (client: Client) {
+    onJoin (client: Client, data: any) {
         console.log(client.sessionId, "joined!");
-        this.state.createPlayer(client.sessionId);
+        this.state.createPlayer(client.sessionId, data);
+    }
+
+    onLeave (client) {
+        console.log(client.sessionId, "left!");
+        this.state.removePlayer(client.sessionId);
+    }
+
+    onDispose () {
+        console.log("Dispose StateHandlerRoom");
+    }
+
+}
+
+export class LobbyGameRoom extends Room {
+    maxClients = 10;
+    state = new State();
+
+    onCreate (options) {
+        console.log("LobbyGameRoom created!", options);
+
+        this.onMessage("move", (client, data) => {
+            this.state.movePlayer(client.sessionId, data);
+        });
+    }
+
+    // onAuth(client, options, req) {
+    //     return true;
+    // }
+
+    onJoin (client: Client, data: any) {
+        console.log(client.sessionId, "joined!");
+        this.state.createPlayer(client.sessionId, data);
     }
 
     onLeave (client) {
